@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>记账本</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, "Noto Sans TC", sans-serif; background: #f5f5f7; color: #1a1a2e; min-height: 100vh; padding-bottom: 80px; }
+.container { max-width: 480px; margin: 0 auto; padding: 16px; }
+header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #fff; border-bottom: 1px solid #e5e5e5; position: sticky; top: 0; z-index: 100; }
+header h1 { font-size: 20px; font-weight: 700; }
+.card { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 16px; }
+.card h3 { font-size: 15px; margin-bottom: 12px; color: #666; }
+.form-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.form-row input, .form-row select, .form-row textarea { flex: 1; min-width: 80px; padding: 10px 12px; border: 1px solid #e5e5e5; border-radius: 10px; background: #f5f5f7; font-size: 15px; font-family: inherit; }
+.btn { padding: 10px 18px; border-radius: 10px; border: none; font-size: 15px; font-weight: 600; cursor: pointer; }
+.btn-primary { background: #4a90d9; color: #fff; }
+.btn-danger { background: #e74c3c; color: #fff; }
+.btn-secondary { background: #e5e5e5; color: #1a1a2e; }
+.type-toggle { display: flex; border-radius: 10px; overflow: hidden; border: 1px solid #e5e5e5; }
+.type-toggle button { flex: 1; padding: 10px; border: none; background: #f5f5f7; font-size: 14px; font-weight: 600; cursor: pointer; }
+.type-toggle button.active { background: #4a90d9; color: #fff; }
+.type-toggle button.income.active { background: #27ae60; }
+.type-toggle button.expense.active { background: #e74c3c; }
+.summary-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 16px 0; }
+.summary-card { background: #fff; border-radius: 14px; padding: 14px 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); text-align: center; }
+.summary-card .label { font-size: 11px; color: #999; margin-bottom: 6px; }
+.summary-card .value { font-size: 18px; font-weight: 700; }
+.summary-card.income .value { color: #27ae60; }
+.summary-card.expense .value { color: #e74c3c; }
+.summary-card.balance .value { color: #4a90d9; }
+.section-title { display: flex; justify-content: space-between; align-items: center; margin: 20px 0 10px; font-size: 15px; font-weight: 700; }
+.search-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+.search-bar input { flex: 1; padding: 10px 14px; border: 1px solid #e5e5e5; border-radius: 10px; background: #fff; font-size: 14px; }
+.filter-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.filter-tag { padding: 5px 12px; border-radius: 20px; border: 1px solid #e5e5e5; background: #fff; color: #666; font-size: 12px; cursor: pointer; }
+.filter-tag.active { background: #4a90d9; color: #fff; border-color: #4a90d9; }
+.tx-list { display: flex; flex-direction: column; gap: 8px; }
+.tx-item { background: #fff; border-radius: 14px; padding: 14px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 12px; }
+.tx-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; background: #f5f5f7; flex-shrink: 0; }
+.tx-info { flex: 1; min-width: 0; }
+.tx-title { font-size: 15px; font-weight: 600; }
+.tx-meta { font-size: 12px; color: #999; margin-top: 2px; }
+.tx-amount { font-size: 17px; font-weight: 700; flex-shrink: 0; }
+.tx-amount.income { color: #27ae60; }
+.tx-amount.expense { color: #e74c3c; }
+.budget-item { margin-bottom: 14px; }
+.budget-header { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+.budget-bar-bg { height: 8px; background: #f5f5f7; border-radius: 4px; overflow: hidden; }
+.budget-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+.goal-item { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.goal-icon { font-size: 28px; }
+.goal-info { flex: 1; }
+.goal-name { font-size: 14px; font-weight: 600; }
+.goal-amount { font-size: 12px; color: #999; }
+.goal-bar-bg { height: 6px; background: #f5f5f7; border-radius: 3px; overflow: hidden; }
+.goal-bar-fill { height: 100%; background: #4a90d9; border-radius: 3px; transition: width 0.5s; }
+.account-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.account-card { background: #f5f5f7; border-radius: 10px; padding: 12px; text-align: center; border: 1px solid #e5e5e5; }
+.account-card .icon { font-size: 24px; margin-bottom: 4px; }
+.account-card .name { font-size: 12px; color: #666; }
+.account-card .bal { font-size: 15px; font-weight: 700; margin-top: 4px; }
+.pie-chart { display: flex; justify-content: center; margin: 10px 0; }
+.pie-legend { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 10px; }
+.pie-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #666; }
+.pie-legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+.img-upload { border: 2px dashed #e5e5e5; border-radius: 10px; padding: 16px; text-align: center; color: #999; cursor: pointer; margin-bottom: 10px; width: 100%; }
+.img-upload.has-img { border-style: solid; border-color: #4a90d9; padding: 8px; }
+.img-upload img { max-width: 100%; max-height: 150px; border-radius: 8px; }
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; justify-content: center; z-index: 200; }
+.modal-overlay.show { display: flex; }
+.modal-content { background: #fff; width: 100%; max-width: 480px; max-height: 85vh; border-radius: 20px 20px 0 0; padding: 20px; overflow-y: auto; transform: translateY(100%); transition: transform 0.3s; }
+.modal-overlay.show .modal-content { transform: translateY(0); }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.modal-header h2 { font-size: 18px; }
+.modal-close { font-size: 24px; background: none; border: none; color: #999; cursor: pointer; }
+.settings-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #e5e5e5; }
+.settings-label { font-size: 15px; }
+.settings-desc { font-size: 12px; color: #999; margin-top: 2px; }
+.toggle { width: 50px; height: 28px; border-radius: 14px; background: #e5e5e5; position: relative; cursor: pointer; flex-shrink: 0; }
+.toggle.on { background: #4a90d9; }
+.toggle-knob { position: absolute; width: 24px; height: 24px; border-radius: 50%; background: #fff; top: 2px; left: 2px; transition: transform 0.3s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+.toggle.on .toggle-knob { transform: translateX(22px); }
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #e5e5e5; display: flex; justify-content: space-around; padding: 8px 0; z-index: 100; }
+.nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px; color: #999; font-size: 11px; cursor: pointer; border: none; background: none; }
+.nav-item.active { color: #4a90d9; }
+.page { display: none; }
+.page.active { display: block; }
+.repeat-badge { display: inline-flex; align-items: center; gap: 2px; font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(74,144,217,0.15); color: #4a90d9; }
+.empty-state { text-align: center; padding: 40px 20px; color: #999; }
+.csv-area { width: 100%; min-height: 120px; padding: 12px; border: 1px solid #e5e5e5; border-radius: 10px; background: #f5f5f7; font-size: 12px; font-family: monospace; resize: vertical; margin-bottom: 10px; }
+@media (max-width: 380px) { .summary-grid { grid-template-columns: 1fr 1fr; } .account-grid { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>记账本</h1>
+  <div style="display:flex;gap:8px;">
+    <button class="btn" style="background:#e5e5e5; padding:6px 12px; font-size:13px;" onclick="doExport()">导出</button>
+    <button class="btn" style="background:#e5e5e5; padding:6px 12px; font-size:13px;" onclick="doClear()">清除</button>
+  </div>
+</header>
+
+<div class="container">
+
+<div id="page-home" class="page active">
+  <div class="summary-grid">
+    <div class="summary-card income"><div class="label">本月收入</div><div class="value" id="sumIncome">$0</div></div>
+    <div class="summary-card expense"><div class="label">本月支出</div><div class="value" id="sumExpense">$0</div></div>
+    <div class="summary-card balance"><div class="label">本月结余</div><div class="value" id="sumBalance">$0</div></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title"><span>🏦 账户结余</span></div>
+    <div class="account-grid" id="accountGrid"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title"><span>📊 预算追踪</span></div>
+    <div id="budgetList"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title"><span>🎯 储蓄目标</span></div>
+    <div id="goalList"></div>
+  </div>
+
+  <div class="card">
+    <h3>📈 支出类别分析</h3>
+    <div class="pie-chart" id="pieChart"></div>
+    <div class="pie-legend" id="pieLegend"></div>
+  </div>
+
+  <div class="card">
+    <h3>➕ 快速记账</h3>
+    <div class="form-row">
+      <div class="type-toggle" style="flex:1;">
+        <button type="button" class="income active" id="btnIncome" onclick="setType('income')">收入</button>
+        <button type="button" class="expense" id="btnExpense" onclick="setType('expense')">支出</button>
+      </div>
+    </div>
+    <div class="form-row">
+      <input type="number" id="inAmount" placeholder="金额" min="0" step="0.01">
+      <select id="inCategory">
+        <option value="饮食">饮食</option>
+        <option value="交通">交通</option>
+        <option value="娱乐">娱乐</option>
+        <option value="教育">教育</option>
+        <option value="薪金">薪金</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <select id="inAccount">
+        <option value="现金">现金</option>
+        <option value="银行户口">银行户口</option>
+        <option value="信用卡">信用卡</option>
+      </select>
+      <input type="date" id="inDate">
+    </div>
+    <div class="form-row"><input type="text" id="inNote" placeholder="备注（可选）" style="flex:2;"></div>
+    <div class="form-row">
+      <div class="img-upload" id="imgUpload" onclick="document.getElementById('imgInput').click()">
+        <span>📷 点击上传收据</span>
+      </div>
+      <input type="file" id="imgInput" accept="image/*" style="display:none" onchange="handleImg(this)">
+    </div>
+    <div class="form-row" style="justify-content:space-between;">
+      <button class="btn btn-secondary" onclick="toggleAdvanced()">⚙️ 进阶选项</button>
+      <button class="btn btn-primary" onclick="addTx()">💾 保存</button>
+    </div>
+    <div id="advancedArea" style="display:none; margin-top:10px;">
+      <div class="form-row"><input type="text" id="inTags" placeholder="标签，用逗号分隔"></div>
+      <div class="form-row">
+        <select id="inRepeat" style="flex:1;">
+          <option value="">不重复</option>
+          <option value="daily">每日</option>
+          <option value="weekly">每周</option>
+          <option value="monthly">每月</option>
+        </select>
+      </div>
+      <div class="form-row"><textarea id="inDetail" placeholder="详细说明..." style="flex:1;height:60px;"></textarea></div>
+    </div>
+  </div>
+</div>
+
+<div id="page-list" class="page">
+  <div class="section-title"><span>📝 交易记录</span></div>
+  <div class="search-bar"><input type="text" id="searchInput" placeholder="🔍 搜索..." oninput="renderTxList()"></div>
+  <div class="filter-tags" id="filterTags"></div>
+  <div class="tx-list" id="txList"></div>
+</div>
+
+<div id="page-stats" class="page">
+  <div class="section-title">📊 统计分析</div>
+  <div class="card"><h3>近6个月收支趋势</h3><div id="trendChart" style="height:200px;"></div></div>
+  <div class="card"><h3>类别占比</h3><div class="pie-chart" id="statsPieChart"></div><div class="pie-legend" id="statsPieLegend"></div></div>
+  <div class="card"><h3>账户分布</h3><div id="accountChart" style="height:180px;"></div></div>
+</div>
+
+</div>
+
+<nav class="bottom-nav">
+  <button class="nav-item active" onclick="goPage('home',this)"><span style="font-size:22px;">🏠</span><span>首页</span></button>
+  <button class="nav-item" onclick="goPage('list',this)"><span style="font-size:22px;">📝</span><span>记录</span></button>
+  <button class="nav-item" onclick="goPage('stats',this)"><span style="font-size:22px;">📊</span><span>统计</span></button>
+</nav>
+
+<div class="modal-overlay" id="detailModal">
+  <div class="modal-content">
+    <div class="modal-header"><h2>📝 交易详情</h2><button class="modal-close" onclick="closeModal('detailModal')">&times;</button></div>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<script>
+var transactions = [];
+var currentType = 'income';
+var tempImg = null;
+var budgets = { '饮食': 3000, '交通': 1000, '娱乐': 1500, '教育': 2000 };
+var goals = [];
+var accounts = [{ name: '现金', icon: '💵', balance: 0 }, { name: '银行户口', icon: '🏦', balance: 0 }, { name: '信用卡', icon: '💳', balance: 0 }];
+var icons = { '饮食': '🍜', '交通': '🚗', '娱乐': '🎮', '教育': '📚', '薪金': '💰', '投资': '📈', '奖金': '🎉', '购物': '🛍️', '医疗': '💊', '其他': '📦', '其他收入': '💵' };
+
+function init() {
+  try {
+    var saved = localStorage.getItem('accountData');
+    if (saved) {
+      var parsed = JSON.parse(saved);
+      if (parsed.transactions) transactions = parsed.transactions;
+      if (parsed.budgets) budgets = parsed.budgets;
+      if (parsed.goals) goals = parsed.goals;
+      if (parsed.accounts) accounts = parsed.accounts;
+    }
+  } catch(e) {}
+  var today = new Date();
+  var mm = today.getMonth() + 1; if (mm < 10) mm = '0' + mm;
+  var dd = today.getDate(); if (dd < 10) dd = '0' + dd;
+  document.getElementById('inDate').value = today.getFullYear() + '-' + mm + '-' + dd;
+  renderAll();
+}
+
+function saveData() {
+  try {
+    localStorage.setItem('accountData', JSON.stringify({ transactions: transactions, budgets: budgets, goals: goals, accounts: accounts }));
+  } catch(e) { alert('保存失败: ' + e.message); }
+  renderAll();
+}
+
+function renderAll() {
+  renderSummary();
+  renderAccounts();
+  renderBudgets();
+  renderGoals();
+  renderPieChart();
+  renderTxList();
+  renderTrendChart();
+  renderAccountChart();
+  renderStatsPie();
+  renderFilters();
+}
+
+function renderSummary() {
+  var now = new Date();
+  var income = 0, expense = 0;
+  for (var i = 0; i < transactions.length; i++) {
+    var d = new Date(transactions[i].date);
+    if (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()) {
+      if (transactions[i].type === 'income') income += transactions[i].amount;
+      else expense += transactions[i].amount;
+    }
+  }
+  document.getElementById('sumIncome').textContent = '$' + income.toLocaleString();
+  document.getElementById('sumExpense').textContent = '$' + expense.toLocaleString();
+  document.getElementById('sumBalance').textContent = '$' + (income - expense).toLocaleString();
+}
+
+function renderAccounts() {
+  var balances = {};
+  for (var i = 0; i < accounts.length; i++) balances[accounts[i].name] = 0;
+  for (var i = 0; i < transactions.length; i++) {
+    if (balances[transactions[i].account] !== undefined) {
+      if (transactions[i].type === 'income') balances[transactions[i].account] += transactions[i].amount;
+      else balances[transactions[i].account] -= transactions[i].amount;
+    }
+  }
+  var grid = document.getElementById('accountGrid');
+  grid.innerHTML = '';
+  for (var i = 0; i < accounts.length; i++) {
+    var a = accounts[i];
+    var bal = balances[a.name] || 0;
+    var card = document.createElement('div');
+    card.className = 'account-card';
+    card.innerHTML = "<div class='icon'>" + a.icon + "</div><div class='name'>" + a.name + "</div><div class='bal' style='color:" + (bal >= 0 ? '#27ae60' : '#e74c3c') + "'>$" + bal.toLocaleString() + "</div>";
+    grid.appendChild(card);
+  }
+}
+
+function renderBudgets() {
+  var now = new Date();
+  var year = now.getFullYear();
+  var month = now.getMonth();
+  var spent = {};
+  for (var key in budgets) spent[key] = 0;
+  for (var i = 0; i < transactions.length; i++) {
+    var d = new Date(transactions[i].date);
+    if (transactions[i].type === 'expense' && d.getFullYear() === year && d.getMonth() === month && spent[transactions[i].category] !== undefined) {
+      spent[transactions[i].category] += transactions[i].amount;
+    }
+  }
+  var list = document.getElementById('budgetList');
+  list.innerHTML = '';
+  for (var cat in budgets) {
+    var budget = budgets[cat];
+    var s = spent[cat] || 0;
+    var pct = Math.min((s / budget) * 100, 100);
+    var color = '#27ae60';
+    var warning = '';
+    if (pct >= 100) { color = '#e74c3c'; warning = '⚠️ 已超支！'; }
+    else if (pct >= 80) { color = '#f39c12'; warning = '⚡ 接近上限 (' + Math.round(pct) + '%)'; }
+    var item = document.createElement('div');
+    item.className = 'budget-item';
+    item.innerHTML = "<div class='budget-header'><span>" + cat + "</span><span>$" + s.toLocaleString() + " / $" + budget.toLocaleString() + "</span></div><div class='budget-bar-bg'><div class='budget-bar-fill' style='width:" + pct + "%;background:" + color + ";'></div></div>";
+    if (warning) {
+      var warnDiv = document.createElement('div');
+      warnDiv.style.cssText = 'font-size:11px;margin-top:4px;color:' + color + ';';
+      warnDiv.textContent = warning;
+      item.appendChild(warnDiv);
+    }
+    list.appendChild(item);
+  }
+}
+
+function renderGoals() {
+  var list = document.getElementById('goalList');
+  list.innerHTML = '';
+  if (goals.length === 0) {
+    var empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.innerHTML = "<div style='font-size:48px;margin-bottom:12px;'>🎯</div><p>尚未设定储蓄目标</p>";
+    list.appendChild(empty);
+    return;
+  }
+  var balances = {};
+  for (var i = 0; i < accounts.length; i++) balances[accounts[i].name] = 0;
+  for (var i = 0; i < transactions.length; i++) {
+    if (balances[transactions[i].account] !== undefined) {
+      if (transactions[i].type === 'income') balances[transactions[i].account] += transactions[i].amount;
+      else balances[transactions[i].account] -= transactions[i].amount;
+    }
+  }
+  for (var i = 0; i < goals.length; i++) {
+    var g = goals[i];
+    var current = Math.max(0, balances[g.account] || 0);
+    var pct = Math.min((current / g.target) * 100, 100);
+    var item = document.createElement('div');
+    item.className = 'goal-item';
+    item.innerHTML = "<div class='goal-icon'>" + g.icon + "</div><div class='goal-info'><div class='goal-name'>" + g.name + "</div><div class='goal-amount'>" + g.account + ": $" + current.toLocaleString() + " / $" + g.target.toLocaleString() + "</div><div class='goal-bar-bg'><div class='goal-bar-fill' style='width:" + pct + "%'></div></div></div>";
+    list.appendChild(item);
+  }
+}
+
+function drawPie(chartId, legendId, data) {
+  var total = 0;
+  for (var key in data) total += data[key];
+  var chart = document.getElementById(chartId);
+  var legend = document.getElementById(legendId);
+  if (total === 0) {
+    chart.innerHTML = "<div style='text-align:center;color:#999;padding:20px;'>暂无数据</div>";
+    legend.innerHTML = '';
+    return;
+  }
+  var colors = ['#4a90d9', '#e74c3c', '#27ae60', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
+  var startAngle = 0;
+  var svgContent = '';
+  var legendContent = '';
+  var i = 0;
+  var entries = [];
+  for (var key in data) entries.push({ key: key, val: data[key] });
+  entries.sort(function(a, b) { return b.val - a.val; });
+  for (var j = 0; j < entries.length; j++) {
+    var cat = entries[j].key, val = entries[j].val;
+    var angle = (val / total) * 360;
+    var color = colors[i % colors.length];
+    var endAngle = startAngle + angle;
+    var x1 = 100 + 80 * Math.cos(Math.PI * startAngle / 180);
+    var y1 = 100 + 80 * Math.sin(Math.PI * startAngle / 180);
+    var x2 = 100 + 80 * Math.c
